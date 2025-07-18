@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyMatic - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../CSS/styles.css">
+</head>
+<body>
+    <header class="header">
+        <a href="../index.html" class="logo-link">
+            <img src="../img/logo-no-background.png" alt="MoneyMatic Logo" class="logo">
+        </a>
+        <nav class="nav">
+            <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+            <ul class="nav-list">
+                <li><a href="../index.html#home" class="nav-link">Home</a></li>
+                <li><a href="../index.html#features" class="nav-link">Features</a></li>
+                <li><a href="../index.html#use-case" class="nav-link">Use Case</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="dashboard-container">
+        <h1>Dashboard</h1>
+        <p>Welcome to your MoneyMatic dashboard!</p>
+
+
+        <div class="upload-container">
+            <h2>Upload Financial Document</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="documentInput" accept=".jpg,.png" required>
+                <button type="submit" class="cta-button primary">Process Document</button>
+            </form>
+            <div id="output" style="margin-top: 20px;"></div>
+        </div>
+
+   
+        <button onclick="logout()" class="cta-button primary" style="margin-top: 20px;">Log Out</button>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-logo">MoneyMatic</div>
+        <ul class="footer-links">
+            <li><a href="../other/privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="../other/terms-of-service.html">Terms of Service</a></li>
+            <li><a href="../other/contact-us.html">Contact Us</a></li>
+        </ul>
+        <div class="social-icons">
+            <a href="https://twitter.com" aria-label="Twitter"><span>🐦</span></a>
+            <a href="https://linkedin.com" aria-label="LinkedIn"><span>💼</span></a>
+            <a href="https://youtube.com" aria-label="YouTube"><span>🎥</span></a>
+        </div>
+        <p>Made with love ❤️ by CodeStorm</p>
+    </footer>
+
+    <script>
+
+        async function loadDashboard() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '../login/login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/api/dashboard', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.message);
+                    window.location.href = '../login/login.html';
+                }
+            } catch (err) {
+                alert(`Error loading dashboard: ${err.message}`);
+                window.location.href = '../login/login.html';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '../login/login.html';
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('documentInput');
+            const outputDiv = document.getElementById('output');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                outputDiv.innerText = "Please select a file to process.";
+                return;
+            }
+
+            outputDiv.innerText = "Processing document...";
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to process the document.');
+                }
+
+                const result = await response.json();
+                outputDiv.innerHTML = `
+                    <h3>Results</h3>
+                    <br>
+                    <p><strong>Extracted Text:</strong></p>
+                    <p>${result.extracted_text}</p>
+                    <p><strong>Prediction:</strong> ${result.prediction}</p>
+                    <p><strong>Confidence:</strong> ${result.confidence}</p>
+                `;
+            } catch (err) {
+                outputDiv.innerText = `Error processing document: ${err.message}`;
+            }
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>
